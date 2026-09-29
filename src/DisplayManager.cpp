@@ -17,7 +17,12 @@ void initDisplay(uint8_t i2cAddr, uint8_t cols,  uint8_t rows) {
 }
 
 void updateDisplay() {
-    char displayBuffer[16]; // 16 byte character buffer for using snprintf to format our lcd text
+    // 17 byte character buffer for using snprintf to format our lcd text.
+    // Made buffer a little bigger thank the 16 lcd characters
+    // to account for null terminator byte.
+    // This makes sure the string doesn't terminate early on the LCD screen
+    // causing leftover text to remain on the LCD screen.
+    char displayBuffer[17];
 
     switch (currentState) {
     case MenuState::LOCKED:
@@ -47,7 +52,7 @@ void updateDisplay() {
         lcd->setCursor(0, 0);
         lcd->print("Set Volume:     ");
         lcd->setCursor(0, 1);
-        snprintf(displayBuffer, sizeof(displayBuffer), "[ %3d%% ]       ", alarmVolume);
+        snprintf(displayBuffer, sizeof(displayBuffer), "[ %3d%% ]        ", alarmVolume);
         lcd->print(displayBuffer);
         break;
 
@@ -55,7 +60,7 @@ void updateDisplay() {
         lcd->setCursor(0, 0);
         lcd->print("Instellen Uren: ");
         lcd->setCursor(0, 1);
-        snprintf(displayBuffer, sizeof(displayBuffer), "[ %02d uur ]     ", timerHours);
+        snprintf(displayBuffer, sizeof(displayBuffer), "[ %02d uur ]      ", timerHours);
         lcd->print(displayBuffer);
         break;
 
@@ -63,13 +68,13 @@ void updateDisplay() {
         lcd->setCursor(0, 0);
         lcd->print("Instellen Min:  ");
         lcd->setCursor(0, 1);
-        snprintf(displayBuffer, sizeof(displayBuffer), "[ %02d min ]     ", timerMinutes);
+        snprintf(displayBuffer, sizeof(displayBuffer), "[ %02d min ]      ", timerMinutes);
         lcd->print(displayBuffer);
         break;
 
     case MenuState::WAITING_FOR_RFID_REMOVE:
         lcd->setCursor(0, 0);
-        lcd->print(" Timer ingesteld ");
+        lcd->print("Timer ingesteld ");
         lcd->setCursor(0, 1);
         lcd->print("Verwijder RFID..");
         break;
@@ -90,7 +95,7 @@ void updateDisplay() {
             const int mins = (totalSecondsRemaining % 3600) / 60;
             const int secs = totalSecondsRemaining % 60;
 
-            snprintf(displayBuffer, sizeof(displayBuffer), "   %02d:%02d:%02d    ", hrs, mins, secs);
+            snprintf(displayBuffer, sizeof(displayBuffer), "    %02d:%02d:%02d    ", hrs, mins, secs);
             lcd->print(displayBuffer);
         }
         break;
