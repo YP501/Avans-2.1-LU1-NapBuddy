@@ -1,4 +1,5 @@
 #include "EncoderTask.h"
+#include "BuzzerTask.h"
 #include "DisplayManager.h"
 #include "SystemTask.h"
 
@@ -41,6 +42,7 @@ void resetSystemToDefaults() {
     totalSecondsRemaining = 0;
     isTimerActive = false;
     isAlarmRinging = false;
+    triggerBuzzer(BuzzerCommand::OFF);
 }
 
 // Task which reads out the encoder and acts accordingly
@@ -88,9 +90,7 @@ void vEncoderTask(void* pvParameters) {
                     case MenuState::SET_VOLUME:
                         alarmVolume = constrain(alarmVolume + (delta * 5), 0, 100); // Volume between 0 and 100
 
-                        playBuzzerTone(true);
-                        vTaskDelay(pdMS_TO_TICKS(40));
-                        playBuzzerTone(false);
+                        triggerBuzzer(BuzzerCommand::SHORT_BEEP);
                         break;
 
                     case MenuState::SET_TIMER_HOURS:
@@ -147,6 +147,9 @@ void vEncoderTask(void* pvParameters) {
 
                 case MenuState::SET_TIMER_MINUTES:
                     totalSecondsRemaining = (timerHours * 3600) + (timerMinutes * 60);
+
+                    // TODO: REMOVE THIS LINE BELOW WHEN DONE TESTING
+                    totalSecondsRemaining = 10;
 
                     if (totalSecondsRemaining > 0) {
                         isTimerActive = false;

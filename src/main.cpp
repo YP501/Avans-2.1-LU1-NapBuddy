@@ -3,6 +3,7 @@
 #include "EncoderTask.h"
 #include "RfidManager.h"
 #include "SystemTask.h"
+#include "BuzzerTask.h"
 
 constexpr uint8_t LCD_ADDRESS     = 0x27;
 constexpr uint8_t ENCODER_ADDRESS = 0x3F;
@@ -19,6 +20,7 @@ void setup() {
     initEncoder(ENCODER_ADDRESS, ENCODER_INT_PIN);
     initRFID(RFID_SS_PIN, RFID_RST_PIN);
 
+    xTaskCreate(vBuzzerTask, "BuzzerTask", 2048, nullptr, 2, nullptr);
     xTaskCreate(vEncoderTask, "ReadEncoderTask", 4096, nullptr, 1, nullptr);
     xTaskCreate(vSystemTask, "SystemTask", 2048, nullptr, 1, nullptr);
 }

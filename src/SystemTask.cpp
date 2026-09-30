@@ -3,11 +3,7 @@
 #include "EncoderTask.h"
 #include "MenuState.h"
 #include "RfidManager.h"
-
-// PWM settings for buzzer volume
-constexpr uint8_t PWM_CHANNEL = 0;
-constexpr uint8_t PWM_RESOLUTION = 8;
-constexpr uint16_t ALARM_FREQ = 2000; // TODO: Maybe make it so you can choose your timer sound?
+#include "BuzzerTask.h"
 
 constexpr int MAX_LOCK_COUNTDOWN = 5;
 
@@ -18,30 +14,8 @@ int32_t totalSecondsRemaining = 0;
 bool isTimerActive = false;
 bool isAlarmRinging = false;
 
-void initBuzzer(const uint8_t buzzerPin) {
-    ledcSetup(PWM_CHANNEL, ALARM_FREQ, PWM_RESOLUTION);
-    ledcAttachPin(buzzerPin, PWM_CHANNEL);
-    ledcWrite(PWM_CHANNEL, 0);
-}
-
-void playBuzzerTone(const bool enable) {
-    if (enable) {
-        // Convert 0-100% volume to a PWM duty cycle
-        // 8-bit resolution maxes out at 255, but a 50% duty cycle (~127) yields the maximum
-        // volume because it provides equal high/low time, allowing the buzzer membrane
-        // to achieve its maximum physical movement/amplitude. SOURCE: Google Gemini
-        // Note: Human hearing is logarithmic, but a linear mapping suffices for this proof of concept.
-        const int dutyCycle = map(alarmVolume, 0, 100, 0, 127);
-        ledcWrite(PWM_CHANNEL, dutyCycle);
-    }
-    else {
-        ledcWrite(PWM_CHANNEL, 0); // Silence!
-    }
-}
-
 void vSystemTask(void* pvParameters) {
     TickType_t xLastWakeTime = xTaskGetTickCount();
-    bool buzzerToggle = false;
     uint8_t secondCounter = 0;
 
     for (;;) {
@@ -62,7 +36,10 @@ void vSystemTask(void* pvParameters) {
         else if (currentState == MenuState::TIMER_RUNNING) {
             if (correctCardPresent) {
                 isTimerActive = false;
-                isAlarmRinging = false;
+                if (isAlarmRinging) {
+                    isAlarmRinging = false;
+                    triggerBuzzer(BuzzerCommand::OFF);
+                }
                 currentState = MenuState::MAIN_MENU;
                 lockCountdown = MAX_LOCK_COUNTDOWN;
                 updateDisplay();
@@ -98,6 +75,10 @@ void vSystemTask(void* pvParameters) {
                     }
                     else {
                         // Grace period over, lock the system back up
+                        if (isAlarmRinging) {
+                            isAlarmRinging = false;
+                            triggerBuzzer(BuzzerCommand::OFF);
+                        }
                         resetSystemToDefaults();
                         currentState = MenuState::LOCKED;
                         updateDisplay();
@@ -116,21 +97,12 @@ void vSystemTask(void* pvParameters) {
                 }
                 else {
                     isAlarmRinging = true;
+                    triggerBuzzer(BuzzerCommand::START_ALARM);
 
                     if (currentState == MenuState::TIMER_RUNNING) {
                         updateDisplay();
                     }
                 }
-            }
-
-            // Toggle buzzer if alarm is ringing, else disable it
-            if (isAlarmRinging) {
-                buzzerToggle = !buzzerToggle;
-                playBuzzerTone(buzzerToggle);
-            }
-            else {
-                playBuzzerTone(false);
-                buzzerToggle = false;
             }
         }
     }
