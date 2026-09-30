@@ -54,13 +54,6 @@ void vEncoderTask(void* pvParameters) {
 
         // Waits for signal from interrupt
         if (xSemaphoreTake(encoderSemaphore, xTicksToWait) == pdTRUE || alreadyPressed) {
-            // If system locked, ignore encoder input, however DO update count and clear the interrupt
-            if (currentState == MenuState::LOCKED) {
-                lastCount = twist.getCount();
-                twist.clearInterrupts();
-                continue;
-            }
-
             const bool isPressed = twist.isPressed();
             const bool isMoved = twist.isMoved();
 
@@ -111,9 +104,7 @@ void vEncoderTask(void* pvParameters) {
                     case MenuState::LOCKED:
                     case MenuState::WAITING_FOR_RFID_REMOVE:
                     case MenuState::TIMER_RUNNING:
-                        // Ignore rotations for all above states.
-                        // Reason we also check for locked state above, is because we want early guard clause
-                        // and prevent unnecessary I2C communication and/or calculations
+                        // Ignore rotations for all above states
                         break;
                     }
 
@@ -170,6 +161,7 @@ void vEncoderTask(void* pvParameters) {
                 case MenuState::LOCKED:
                 case MenuState::WAITING_FOR_RFID_REMOVE:
                 case MenuState::TIMER_RUNNING:
+                    // Ignore button pressed for all above states
                     break;
                 }
 

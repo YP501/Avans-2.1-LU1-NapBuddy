@@ -45,7 +45,7 @@ void vSystemTask(void* pvParameters) {
     uint8_t secondCounter = 0;
 
     for (;;) {
-        // Small 50 ms delay so we do not
+        // Small 50 ms delay so we do not spam the RFID reader
         vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(50));
 
         // Process possibly new RFID sensor state and update all variables that depend on it
@@ -56,7 +56,6 @@ void vSystemTask(void* pvParameters) {
             if (correctCardPresent) {
                 currentState = MenuState::MAIN_MENU;
                 lockCountdown = MAX_LOCK_COUNTDOWN;
-                twist.clearInterrupts();
                 updateDisplay();
             }
         }
