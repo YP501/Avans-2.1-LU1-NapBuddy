@@ -7,6 +7,9 @@ static MFRC522 mfrc522;
 
 static bool tagPresent = false;
 static bool tagSaved = false;
+
+//PICC stands for Proximity Integrated Circuit Card
+//This is the unique identifier that each tag has and will be used to save a certain tag
 static byte nuidPICC[4];
 bool correctCardPresent = false;
 
@@ -24,12 +27,18 @@ void initRFID(uint8_t ssPin, uint8_t rstPin) {
     Serial.println("RFID Ready");
 }
 
+//The first three lines of code are there to confirm if an RFID tag is present
+//the ATQA (Answer To reQuest A) has to stored as the library used requires it
+//
 void updateRFID() {
     byte bufferATQA[2];
     byte bufferSize = sizeof(bufferATQA);
 
+    //Sends a request to the tag and writes the result to the buffer
+    //If this succeeded StatusCode wil be set to STATUS_OK
     MFRC522::StatusCode result = mfrc522.PICC_WakeupA(bufferATQA, &bufferSize);
 
+    //if a tag responded
     if (result == MFRC522::STATUS_OK) {
         lastSeen = millis();
 
@@ -38,15 +47,18 @@ void updateRFID() {
             handleTagDetected();
         }
 
+        //Finishes communications with the tag
         mfrc522.PICC_HaltA();
         mfrc522.PCD_StopCrypto1();
     }
 
+    //If a tag hasnt been present since 
     if (tagPresent && (millis() - lastSeen > TAG_TIMEOUT)) {
         handleTagRemoved();
     }
 }
 
+//Compares each byte of the detected UID with the save UID and returns true if all of them match
 static bool uidMatches() {
     for (byte i = 0; i < 4; i++) {
         if (mfrc522.uid.uidByte[i] != nuidPICC[i]) {
@@ -56,6 +68,7 @@ static bool uidMatches() {
     return true;
 }
 
+//Loops through each byte of the detected UID and saves it to nuidPICC, afterwards set tagSaved to true and show in serial
 static void saveUID() {
     for (byte i = 0; i < 4; i++) {
         nuidPICC[i] = mfrc522.uid.uidByte[i];
@@ -70,13 +83,13 @@ static void saveUID() {
     Serial.println();
 }
 
+
 static void handleTagDetected() {
     if (!mfrc522.PICC_ReadCardSerial()) {
         return;
     }
 
-    // Als er nog geen tag is opgeslagen OF als het systeem momenteel op slot is:
-    // Sla deze kaart op als de actieve (geautoriseerde) kaart!
+    //save a new RFID tag if no tag is saved yet OR if the system is currently LOCKED 
     if (!tagSaved || currentState == MenuState::LOCKED) {
         saveUID();
         correctCardPresent = true;
@@ -84,6 +97,7 @@ static void handleTagDetected() {
         return;
     }
 
+    //is set to true if detected UID matches saved one
     correctCardPresent = uidMatches();
 
     if (correctCardPresent) {
@@ -93,6 +107,7 @@ static void handleTagDetected() {
     }
 }
 
+//What happens when a tag is no longer present
 static void handleTagRemoved() {
     if (correctCardPresent) {
         Serial.println("Authorized card removed");
