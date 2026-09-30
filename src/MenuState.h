@@ -14,16 +14,14 @@ enum class MenuState {
     TIMER_RUNNING
 };
 
-// External variables
 extern MenuState currentState;
 extern int currentSelection;
 extern int alarmVolume;
 extern int timerHours;
 extern int timerMinutes;
-
-// Timer screen
 extern int32_t totalSecondsRemaining;
 extern bool isTimerActive;
 extern bool isAlarmRinging;
+extern bool isCardCurrentlyPresent;
 
 #endif //NAPBUDDY_MENUSTATE_H

@@ -10,7 +10,7 @@ MenuState currentState = MenuState::LOCKED; // Start with system locked and wait
 int currentSelection = 0;
 
 // Alarm config values
-int alarmVolume = 50;
+int alarmVolume = 100;
 int timerHours = 0;
 int timerMinutes = 0;
 
@@ -35,14 +35,17 @@ void initEncoder(const uint8_t i2cAddr, const uint8_t intPin) {
 }
 
 void resetSystemToDefaults() {
+    currentState = MenuState::LOCKED;
+    triggerBuzzer(BuzzerCommand::OFF);
+    triggerBuzzer(BuzzerCommand::SHORT_BEEP);
+
     currentSelection = 0;
-    alarmVolume = 50;
+    alarmVolume = 100;
     timerHours = 0;
     timerMinutes = 0;
     totalSecondsRemaining = 0;
     isTimerActive = false;
     isAlarmRinging = false;
-    triggerBuzzer(BuzzerCommand::OFF);
 }
 
 // Task which reads out the encoder and acts accordingly
@@ -148,13 +151,16 @@ void vEncoderTask(void* pvParameters) {
                 case MenuState::SET_TIMER_MINUTES:
                     totalSecondsRemaining = (timerHours * 3600) + (timerMinutes * 60);
 
-                    // TODO: REMOVE THIS LINE BELOW WHEN DONE TESTING
-                    totalSecondsRemaining = 10;
-
                     if (totalSecondsRemaining > 0) {
-                        isTimerActive = false;
                         isAlarmRinging = false;
-                        currentState = MenuState::WAITING_FOR_RFID_REMOVE;
+
+                        if (isCardCurrentlyPresent) {
+                            isTimerActive = false;
+                            currentState = MenuState::WAITING_FOR_RFID_REMOVE;
+                        } else {
+                            isTimerActive = true;
+                            currentState = MenuState::TIMER_RUNNING;
+                        }
                     }
                     else {
                         currentState = MenuState::MAIN_MENU;
@@ -170,7 +176,8 @@ void vEncoderTask(void* pvParameters) {
 
                 updateDisplay();
             }
-            else if (!isPressed && alreadyPressed) { // When button is physically released, we also release debounce
+            else if (!isPressed && alreadyPressed) {
+                // When button is physically released, we also release debounce
                 alreadyPressed = false;
             }
 
